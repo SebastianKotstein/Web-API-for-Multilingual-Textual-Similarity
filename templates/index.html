@@ -1,0 +1,145 @@
+<!--
+Copyright 2023 Sebastian Kotstein
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang='de'>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
+<title id="page-title">Multilingual Textual Similarity</title>
+<script>
+
+	function clearResults(){
+        document.getElementById("predictions-table").innerHTML = "";
+    }
+
+    function submitQuery(){
+        const data = {
+			jobs: [
+				{
+					targetSentences: document.getElementById("schema_text").value.split(';'),
+					sentences: [
+						{
+							value: document.getElementById("query_text").value
+						}
+					]
+				}
+			]	
+        }
+        clearResults();
+
+		var uri = "/predict?top="+document.getElementById("limit").value;
+
+        fetch(uri,{
+            method: "POST",
+            headers:{
+				"Content-Type": "application/vnd.skotstein.sentence-transformer.jobs.v1+json",
+				"Accept": "application/vnd.skotstein.sentence-transformer.results.v1+json"
+			},
+			body: JSON.stringify(data),
+        }).then(function(response){
+			return response.json();
+		}).then(function(json){
+            addResults(json);
+        });
+    }
+
+	function addResultHeader(){
+		var table = document.getElementById("predictions-table");
+		table.innerHTML = "<thead><tr><th style='width:360px'>Parameter</th><th style='width:80px'>Score</th></tr></thead><tbody id='predictions-table-body'></tbody>";
+	}
+
+    function addResults(json){
+		addResultHeader();
+		similarities = json.jobs[0].sentences[0].similarities;
+
+        for(var i = 0; i < similarities.length; i++){
+            addResult(similarities[i]);
+        }
+    }
+
+    function addResult(similarity){
+        var table = document.getElementById("predictions-table-body");
+		var tableRow = document.createElement("tr");
+		table.appendChild(tableRow);
+		var td1 = document.createElement("td");
+    	td1.innerHTML = similarity.targetSentence;
+		tableRow.appendChild(td1);
+		var td2 = document.createElement("td");
+		td2.innerHTML = similarity.distance;
+		tableRow.appendChild(td2);
+    }
+</script>
+</head>
+
+<body>
+	<div class="container">
+		<div class="page-header">
+			<h1>Multilingual Textual Similarity</h1>
+		</div>
+		<nav aria-label="breadcrumb">
+			<ol class="breadcrumb">
+				<li class="breadcrumb-item">Home</li>
+			</ol>
+		</nav>
+		<div class="page-element">
+			<div>
+				<form style="overflow: auto;">
+					<table>
+						<tr>
+							<td>
+								<p class="config-heading">Sentence:</p>
+							</td>
+						</tr>
+						<tr>
+							<td class="td-input">
+								<textarea name="query_text" id="query_text" rows="2" style="width: 480px">Mein Name ist John Doe</textarea>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<p class="config-heading">Target Sentences (use ';' to separate sentences):</p>
+							</td>
+						</tr>
+						<tr>
+							<td class="td-input">
+								<textarea name="schema_text" id="schema_text" rows="4" style="width: 480px">My name is John Doe;Ich heiße John Doe;Me llamo John Doe;Mi chiamo John Doe;A sentence transformer is a deep learning model;Un transformador de frases es un modelo de aprendizaje profundo;Un trasformatore di frasi è un modello di apprendimento profondo</textarea>
+							</td>
+						</tr>
+						<tr>
+							<td class="td-label">Limit:</td>
+						</tr>
+						<tr>
+							<td class="td-input">
+								<input type="number" name="limit" id="limit" min="1" max="100" value="20">
+							</td>
+						</tr>
+					</table>
+                    <p class="ml-1"><i>Results:</i></p>
+                    <table class="data-table ml-1" id="predictions-table">
+                    </table>
+                    
+					<div class="btn-tray pt-2">
+						<button class="btn-cancel btn-normal" type="button" onclick="clearResults()">Clear Results</button>
+						<button class="btn-confirm btn-normal" type="button" onclick="submitQuery()">Submit</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	
+</body>
+
+</html>
