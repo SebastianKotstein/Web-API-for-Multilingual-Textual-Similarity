@@ -1,0 +1,240 @@
+openapi: '3.0.2'
+info:
+  title: Web API for Multilingual Textual Similarity
+  version: '1.0'
+servers:
+  - url: http://127.0.0.1:5000
+
+components:
+  schemas:
+    hyperlink:
+        type: object
+        properties:
+          rel:
+            type: string
+            example: "self"
+          href:
+            type: string
+            example: "/"
+    error:
+      type: object
+      description: "Error object"
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2023-10-28T20:10:42"
+          description: "Timestamp when the error occured"
+        status:
+          type: integer
+          example: 400
+          description: "HTTP status code of this error"
+        error:
+          type: string
+          example: "Bad request"
+          description: "Short error description"
+        message:
+          type: string
+          example: "The request does not contain a list of jobs, i.e., '$.jobs[*]'"
+          description: "Detailed error description"
+        path:
+          type: string
+          example: "/predict"
+          description: "Invoked path"
+        _links:
+          type: array
+          items:
+            $ref: '#/components/schemas/hyperlink'
+          description: "List of advertised links for feasible follow-up actions"
+    jobs:
+      type: object
+      properties:
+        jobs:
+          type: array
+          description: "List of job objects. This list must contain at least one job object."
+          items:
+            type: object
+            description: "Job object"
+            properties:
+              jobId:
+                type: string
+                example: "j0"
+                description: "Optional identifier to re-identify jobs in the list of results"
+              name:
+                type: string
+                example: "My job"
+                description: "Optional job name"
+              targetSentences:
+                type: array
+                description: "List of target sentences. Each sentence of this list is compared with the sentences listed in 'sentences'."
+                items:
+                  type: string
+                  example: 
+                    - "My name is John Doe"
+                    - "Ich heiße John Doe"
+                    - "Me llamo John Doe"
+                    - "Mi chiamo John Doe"
+                    - "A sentence transformer is a deep learning model"
+                    - "Un transformador de frases es un modelo de aprendizaje profundo"
+                    - "Un trasformatore di frasi è un modello di apprendimento profondo"
+              sentences:
+                type: array
+                description: "List of sentences. Each sentence will be compared with each sentence of the list of target sentences. The list must contain at least one sentence object."
+                items:
+                  description: "Sentence object"
+                  properties:
+                    sentenceId:
+                      type: string
+                      example: "s0"
+                      description: "Optional identifier to re-identify sentences in the list of results"
+                    name:
+                      type: string
+                      example: "My sentence"
+                      description: "Optional sentence name"
+                    value:
+                      type: string
+                      example: "Ein Satztransformer ist ein tiefes neuronales Netzwerk"
+                      description: "The sentence"
+                  required:
+                    - value
+            required:
+              - targetSentence
+              - sentences
+
+    results:
+      type: object
+      description: "Object containing the similarities of the submitted sentences"
+      properties:
+        jobs:
+          type: array
+          description: "List of submitted jobs"
+          items:
+            type: object
+            description: "Submitted job"
+            properties:
+              jobId:
+                type: string
+                example: "j0"
+                description: "Specified job identifier. This property is assigned a auto-generated UUID if no identifier has been specified."
+              name:
+                type: string
+                example: "My job"
+                description: "The specified name of the job. This property is assigned a auto-generated name consisting of the job identifier prefixed with 'Job ' if not name has been specified."
+              targetSentences:
+                type: array
+                description: "List of submitted target sentences."
+                items:
+                  type: string
+                  example: 
+                    - "My name is John Doe"
+                    - "Ich heiße John Doe"
+                    - "Me llamo John Doe"
+                    - "Mi chiamo John Doe"
+                    - "A sentence transformer is a deep learning model"
+                    - "Un transformador de frases es un modelo de aprendizaje profundo"
+                    - "Un trasformatore di frasi è un modello di apprendimento profondo"
+              sentences:
+                type: array
+                description: "List of results for each sentence"
+                items:
+                  type: object
+                  description: "Result object"
+                  properties:
+                    queryId:
+                      type: string
+                      example: "s0"
+                      description: "Specified sentence identifier. This property is assigned a auto-generated UUID if no identifier has been specified."
+                    name:
+                      type: string
+                      example: "My sentence"
+                      description: "The specified name of the sentence. This property is assigned a auto-generated name consisting of the sentence identifier prefixed with 'Sentence ' if not name has been specified."
+                    similarities:
+                      type: array
+                      description: "For each target sentence, the model has calculated a distance between the target sentence and this sentence. This list contains these distances."
+                      items:
+                        type: object
+                        description: "Similarity object containing the target sentence this sentence was compared with and the calculated distance."
+                        properties:
+                          distance:
+                            type: string
+                            description: "Cosine distance"
+                            example: "0.567343"
+                          targetSentences:
+                            type: string
+                            description: "The target sentence this sentence was compared with."
+                            example: "Un trasformatore di frasi è un modello di apprendimento profondo"
+                    value:
+                      type: string
+                      example: "The sentence"
+                      description: "Ein Satztransformer ist ein tiefes neuronales Netzwerk"
+        _links:
+          type: array
+          items:
+            $ref: '#/components/schemas/hyperlink'
+          description: "List of advertised links for feasible follow-up actions"
+  parameters:
+    top:
+      name: top 
+      in: query
+      required: false
+      description: "If set, only the 'x' highest ranked suggested Web API elements will be returned per result list"
+      schema:
+        type: integer
+
+paths:
+  /:
+    get:
+      tags:
+      - Entry Point
+      summary: "Endpoint serving as entry point of this API"
+      description: "Returns a link for making predictions"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.skotstein.sentence-transformer.hypermedia.v1+json:
+              schema:
+                type: object
+                properties:
+                  _links:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/hyperlink'
+                example:
+                  _links:
+                  - rel: self
+                    href: /
+  /predict:
+    post:
+      tags:
+      - Prediction
+      summary: "Endpoint for making predictions"
+      description: "Endpoint for making one or multiple predictions for the passed schemas and queries"
+      parameters:
+        - $ref: "#/components/parameters/top"
+      requestBody:
+        required: true
+        content:
+          aapplication/vnd.skotstein.sentence-transformer.jobs.v1+json:
+            schema:
+              $ref: "#/components/schemas/jobs"
+      responses:
+        '200':
+          description: "Predicted answer spans with suggested Web API elements"
+          content:
+            application/vnd.skotstein.sentence-transformer.results.v1+json:
+              schema:
+                $ref: "#/components/schemas/results"
+        '400':
+          description: "Missing property in request payload"
+          content:
+            application/vnd.skotstein.sentence-transformer.error.v1+json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+
+
+          
+
+
+

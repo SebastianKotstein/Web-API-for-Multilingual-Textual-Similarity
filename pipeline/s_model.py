@@ -4,7 +4,7 @@ import tensorflow as tf
 class SModel:
     def __init__(self, model_path, batch_size = 32) -> None:
         print(tf.config.list_physical_devices('GPU'))
-        self.model = SentenceTransformer(model_path)
+        self.model = SentenceTransformer(model_path,cache_folder="/cache/hf")
         self.batch_size = batch_size
 
 

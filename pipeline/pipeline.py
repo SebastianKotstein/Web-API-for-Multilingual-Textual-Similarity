@@ -15,7 +15,7 @@ class Pipeline:
         self.model = SModel(model_checkpoint)
 
         if cache_size:
-            self.cache = LRUCache(cache_size,True)
+            self.cache = LRUCache(cache_size,False)
         else:
             self.cache = None
 
