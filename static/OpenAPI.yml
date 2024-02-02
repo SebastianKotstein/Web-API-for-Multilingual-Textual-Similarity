@@ -140,7 +140,7 @@ components:
                   type: object
                   description: "Result object"
                   properties:
-                    queryId:
+                    sentenceId:
                       type: string
                       example: "s0"
                       description: "Specified sentence identifier. This property is assigned a auto-generated UUID if no identifier has been specified."
@@ -215,7 +215,7 @@ paths:
       requestBody:
         required: true
         content:
-          aapplication/vnd.skotstein.sentence-transformer.jobs.v1+json:
+          application/vnd.skotstein.sentence-transformer.jobs.v1+json:
             schema:
               $ref: "#/components/schemas/jobs"
       responses:

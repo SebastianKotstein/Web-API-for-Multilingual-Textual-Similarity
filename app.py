@@ -69,7 +69,7 @@ def base():
         return render_template("index.html")
     else:
         response = jsonify({
-            "links_":[
+            "_links":[
                 {
                     "rel":"prediction",
                     "href": url_for("api")
