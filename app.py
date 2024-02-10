@@ -8,8 +8,25 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from representations import *
 from content_negotiation import *
 
+import os
+
+
 app = Flask(__name__, static_folder='static')
-pipeline = Pipeline("sentence-transformers/distiluse-base-multilingual-cased-v1",16)
+
+DEFAULT_MODEL = "sentence-transformers/distiluse-base-multilingual-cased-v1"
+
+if "MODEL" in os.environ:
+    model = os.environ["MODEL"]
+else:
+    model = DEFAULT_MODEL
+
+if "CACHE" in os.environ:
+    cache_size = int(os.environ["CACHE"])
+else:
+    cache_size = 1000
+
+print("Model: ",model)
+pipeline = Pipeline(model,cache_size)
 
 SWAGGER_URL = '/docs' 
 OPEN_API_FILE = '/openapi.yml' 
