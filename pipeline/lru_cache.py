@@ -38,8 +38,8 @@ class LRUCache:
             if self.debug:
                 print("Load "+key)
             result = self.results[key]
-            self.access_counter+=1
-            self.access_counters[key] = self.access_counters
+            self.access_counter+=1 #Note: Python 3 has no integer overflow!
+            self.access_counters[key] = self.access_counter
             return result.copy()
         else:
             if self.debug:
@@ -54,7 +54,7 @@ class LRUCache:
         if self.debug:
             print("Store "+key)    
         self.results[key] = result.copy()
-        self.access_counter+=1
+        self.access_counter+=1 #Note: Python 3 has no integer overflow!
         self.access_counters[key] = self.access_counter
 
 
