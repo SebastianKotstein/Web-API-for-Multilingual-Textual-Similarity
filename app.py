@@ -10,6 +10,18 @@ from content_negotiation import *
 from pipeline.lru_cache import LRUCache
 import os
 
+DEFAULT_MODEL = "sentence-transformers/distiluse-base-multilingual-cased-v1"
+
+if "MODEL" in os.environ:
+    model = os.environ["MODEL"]
+else:
+    model = DEFAULT_MODEL
+
+if "TOKEN" in os.environ:
+    token = os.environ["TOKEN"]
+else:
+    token = None
+
 if "CACHE" in os.environ:
     cache_size = int(os.environ["CACHE"])
 else:
@@ -21,7 +33,7 @@ else:
     cache = None
 
 app = Flask(__name__, static_folder='static')
-pipeline = Pipeline("sentence-transformers/distiluse-base-multilingual-cased-v1",cache=cache)
+pipeline = Pipeline(model,cache=cache,token=token)
 
 SWAGGER_URL = '/docs' 
 OPEN_API_FILE = '/openapi.yml' 

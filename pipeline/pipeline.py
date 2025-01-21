@@ -10,8 +10,8 @@ class InvalidRequestException(Exception):
         super().__init__(self.message)
 
 class Pipeline:
-    def __init__(self, model_checkpoint, cache = None) -> None:
-        self.model = SModel(model_checkpoint)
+    def __init__(self, model_checkpoint, cache = None, token = None) -> None:
+        self.model = SModel(model_checkpoint, token = token)
         self.cache = cache
 
     def process(self, input_dict, top = None):
