@@ -1,5 +1,4 @@
 from .s_model import SModel
-from .lru_cache import LRUCache
 
 from scipy import spatial
 import uuid
@@ -11,13 +10,9 @@ class InvalidRequestException(Exception):
         super().__init__(self.message)
 
 class Pipeline:
-    def __init__(self, model_checkpoint, cache_size = 1000) -> None:
+    def __init__(self, model_checkpoint, cache = None) -> None:
         self.model = SModel(model_checkpoint)
-
-        if cache_size:
-            self.cache = LRUCache(cache_size,False)
-        else:
-            self.cache = None
+        self.cache = cache
 
     def process(self, input_dict, top = None):
         sentence_dict, is_cached_dict = self.json_to_sentence_dict(input_dict)

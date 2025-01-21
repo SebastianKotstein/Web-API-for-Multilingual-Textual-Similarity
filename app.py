@@ -3,30 +3,25 @@ from flask import Flask, request, jsonify, render_template, Response, url_for, s
 from pipeline.pipeline import Pipeline, InvalidRequestException
 import json
 from datetime import datetime
-from werkzeug.exceptions import HTTPException, BadRequest
+from werkzeug.exceptions import HTTPException, BadRequest, NotFound
 from flask_swagger_ui import get_swaggerui_blueprint
 from representations import *
 from content_negotiation import *
-
+from pipeline.lru_cache import LRUCache
 import os
-
-
-app = Flask(__name__, static_folder='static')
-
-DEFAULT_MODEL = "sentence-transformers/distiluse-base-multilingual-cased-v1"
-
-if "MODEL" in os.environ:
-    model = os.environ["MODEL"]
-else:
-    model = DEFAULT_MODEL
 
 if "CACHE" in os.environ:
     cache_size = int(os.environ["CACHE"])
 else:
-    cache_size = 1000
+    cache_size = 100
 
-print("Model: ",model)
-pipeline = Pipeline(model,cache_size)
+if cache_size:
+    cache = LRUCache(cache_size,False)
+else:
+    cache = None
+
+app = Flask(__name__, static_folder='static')
+pipeline = Pipeline("sentence-transformers/distiluse-base-multilingual-cased-v1",cache=cache)
 
 SWAGGER_URL = '/docs' 
 OPEN_API_FILE = '/openapi.yml' 
@@ -86,10 +81,14 @@ def base():
         return render_template("index.html")
     else:
         response = jsonify({
-            "_links":[
+            "links_":[
                 {
                     "rel":"prediction",
                     "href": url_for("api")
+                },
+                {
+                    "rel":"cache",
+                    "href":url_for("get_cache_settings")
                 },
                 {
                     "rel":"self",
@@ -99,6 +98,93 @@ def base():
         })
         response.mimetype = MIME_TYPE_HYPERMEDIA_V1_JSON
         return response
+    
+@app.route("/cache",methods=["GET"])
+@produces(MIME_TYPE_CACHE_SETTINGS_V1_JSON,MIME_TYPE_APPLICATION_JSON)
+def get_cache_settings():
+    payload = dict()
+    if cache:
+        payload["isEnabled"] = True
+        payload["cacheSize"] = cache_size
+    else:
+        payload["isEnabled"] = False
+
+    payload["_links"] = []
+    if cache:
+        payload["_links"].append({
+            "rel":"cached-items",
+            "href":url_for("get_cached_items")
+        })
+    payload["_links"].append({
+        "rel":"base",
+        "href": url_for("base")
+    })
+    payload["_links"].append({
+        "rel":"self",
+        "href": url_for("get_cache_settings")
+    })
+    
+    response = jsonify(payload)
+    response.mimetype = MIME_TYPE_CACHE_SETTINGS_V1_JSON
+    return response
+
+@app.route("/cache/items",methods=["GET"])
+@produces(MIME_TYPE_CACHED_ITEMS_V1_JSON,MIME_TYPE_APPLICATION_JSON)
+def get_cached_items():
+    payload = dict()
+    if cache:
+        payload = dict()
+        payload["cachedItems"] = []
+        for key in cache.results.keys():
+            id = cache.keys_to_ids[key]
+            payload["cachedItems"].append({
+                "id":id,
+                "key":key,
+                "priority":cache.access_counters[key],
+                "_links":[
+                    {
+                        "rel":"item",
+                        "href":url_for("get_cached_item",id=id)
+                    }
+                ]
+            })
+        response = jsonify(payload)
+        response.mimetype = MIME_TYPE_CACHED_ITEMS_V1_JSON
+        return response
+    else:
+        raise NotFound("The requested resource does not exist, since caching is disabled.")
+
+@app.route("/cache/items/<id>",methods=["GET"])
+@produces(MIME_TYPE_CACHED_ITEMS_V1_JSON, MIME_TYPE_APPLICATION_JSON)
+def get_cached_item(id):
+    if cache:
+        if id in cache.ids_to_keys.keys():
+            payload = dict()
+            payload["id"] = id
+            key = cache.ids_to_keys[id]
+            payload["key"] = key
+            payload["priority"] = cache.access_counters[key]
+            payload["data"] = []
+            for i in cache.results[key]:
+                payload["data"].append(str(i))
+            payload["_links"] = [
+                    {
+                        "rel":"collection",
+                        "href":url_for("get_cached_items")
+                    },
+                    {
+                        "rel":"self",
+                        "href":url_for("get_cached_item",id=id)
+                    }
+                ]
+            response = jsonify(payload)
+            response.mimetype = MIME_TYPE_CACHED_ITEM_V1_JSON
+            return response
+        else:
+            raise NotFound("The requested cache item with ID '"+id+"' does not exist.")
+    else:
+       raise NotFound("The requested resource does not exist, since caching is disabled.") 
+    
 
 @app.route('/openapi.yml')
 def send_docs():

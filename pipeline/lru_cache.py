@@ -14,6 +14,7 @@ Copyright 2023 Sebastian Kotstein
    limitations under the License.
 '''
 
+import uuid
 
 class LRUCache:
 
@@ -23,6 +24,8 @@ class LRUCache:
 
         self.results = dict()
         self.access_counters = dict()
+        self.keys_to_ids = dict()
+        self.ids_to_keys = dict()
         self.debug = debug
 
     def has(self, text: str):
@@ -57,6 +60,10 @@ class LRUCache:
         self.access_counter+=1 #Note: Python 3 has no integer overflow!
         self.access_counters[key] = self.access_counter
 
+        id = str(uuid.uuid4())
+        self.keys_to_ids[key] = id
+        self.ids_to_keys[id] = key
+
 
     def evict(self, text: str):
         if self.has(text):
@@ -68,6 +75,9 @@ class LRUCache:
             print("Evict "+key)
         del self.results[key]
         del self.access_counters[key]
+        id = self.keys_to_ids[key]
+        del self.keys_to_ids[key]
+        del self.ids_to_keys[id]
 
     def evict_all(self):
         if self.debug:
@@ -75,6 +85,8 @@ class LRUCache:
         self.access_counter = 0
         self.results.clear()
         self.access_counters.clear()
+        self.keys_to_ids.clear()
+        self.ids_to_keys.clear()
 
     def generate_key(self, text: str):
         return "{'text':'"+text+"'}"
