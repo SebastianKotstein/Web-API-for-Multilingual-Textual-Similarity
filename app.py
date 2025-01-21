@@ -93,7 +93,7 @@ def base():
         return render_template("index.html")
     else:
         response = jsonify({
-            "links_":[
+            "_links":[
                 {
                     "rel":"prediction",
                     "href": url_for("api")
@@ -214,7 +214,7 @@ def handle_exception(e):
         "error": e.name,
         "message": e.description,
         "path": request.url,
-        "links_":[
+        "_links":[
                 {
                     "rel":"base",
                     "href": url_for("base")
